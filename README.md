@@ -1,159 +1,267 @@
-# Turborepo starter
+# Zenith Ledger
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack digital wallet platform built as a monorepo. Supports user wallets, merchant transactions, mock bank on-ramp, live currency monitoring, and personal expense tracking.
 
-## Using this example
+---
 
-Run the following command:
+## Tech stack
 
-```sh
-npx create-turbo@latest
+| Layer | Technology |
+|---|---|
+| Monorepo | Turborepo |
+| Frontend | Next.js 16 · Tailwind CSS |
+| Backend | Express.js · TypeScript |
+| Auth | NextAuth v4 (credentials) |
+| ORM | Prisma 5 |
+| Database | Neon PostgreSQL |
+| State | Recoil |
+| Validation | Zod |
+
+---
+
+## Project structure
+
+```
+zenith_ledger/
+├── apps/
+│   ├── user-app/        # Next.js — user frontend (port 3000)
+│   ├── merchant-app/    # Next.js — merchant frontend (port 3002)
+│   ├── api/             # Express.js — all business logic (port 3001)
+│   └── bank-webhook/    # Express.js — mock bank simulation
+├── packages/
+│   ├── db/              # Prisma client + schema (shared)
+│   ├── store/           # Recoil atoms (shared frontend state)
+│   ├── ui/              # Shared React components
+│   ├── eslint-config/   # Shared ESLint config
+│   └── typescript-config/ # Shared TypeScript config
 ```
 
-## What's inside?
+---
 
-This Turborepo includes the following packages/apps:
+## System architecture
 
-### Apps and Packages
+```mermaid
+graph TD
+  subgraph Frontends
+    UA[user-app\nNext.js :3000]
+    MA[merchant-app\nNext.js :3002]
+  end
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+  subgraph API["apps/api — Express monolith :3001"]
+    MW[Middleware\nAuth · Rate limit · Logger]
+    AM[Auth module]
+    WM[Wallet module]
+    TM[Transactions module]
+    MM[Merchant module]
+    CM[Currency module]
+    EM[Expenses module]
+    EB[Internal EventBus]
+    MW --> AM & WM & TM & MM & CM & EM
+    AM & WM & TM & MM & CM & EM --> EB
+  end
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+  subgraph Data
+    DB[(Neon PostgreSQL\nPrisma 5)]
+    RD[(Redis\nCache · Sessions)]
+  end
 
-### Utilities
+  subgraph External
+    BW[bank-webhook\nMock bank :3003]
+    RA[Exchange rate API]
+  end
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+  UA -->|HTTP REST| MW
+  MA -->|HTTP REST| MW
+  API -->|Prisma| DB
+  CM -->|Cache| RD
+  BW -->|Webhook callback| WM
+  CM -->|Poll rates| RA
 ```
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo build
-npm dlx turbo build
-npm exec turbo build
+## Database schema
+
+```mermaid
+erDiagram
+  User {
+    Int id PK
+    String email
+    String name
+    String number UK
+    String password
+  }
+
+  Merchant {
+    Int id PK
+    String email UK
+    String name
+    String password
+    AuthType authType
+  }
+
+  Balance {
+    Int id PK
+    Int userId FK
+    Int amount
+    Int locked
+  }
+
+  OnRampTransaction {
+    Int id PK
+    Int userId FK
+    String token UK
+    String provider
+    Int amount
+    OnRampStatus status
+    DateTime startTime
+  }
+
+  P2PTransfer {
+    Int id PK
+    Int fromUserId FK
+    Int toUserId FK
+    Int amount
+    P2PStatus status
+    DateTime timestamp
+  }
+
+  MerchantTransaction {
+    Int id PK
+    Int userId FK
+    Int merchantId FK
+    Int amount
+    TxnStatus status
+    String reference UK
+    DateTime timestamp
+  }
+
+  Expense {
+    Int id PK
+    Int userId FK
+    String title
+    Int amount
+    ExpenseCategory category
+    DateTime date
+    String note
+  }
+
+  CurrencyRate {
+    Int id PK
+    String fromCurrency
+    String toCurrency
+    Float rate
+    DateTime fetchedAt
+  }
+
+  User ||--o{ Balance : has
+  User ||--o{ OnRampTransaction : initiates
+  User ||--o{ P2PTransfer : sends
+  User ||--o{ P2PTransfer : receives
+  User ||--o{ MerchantTransaction : makes
+  User ||--o{ Expense : logs
+  Merchant ||--o{ MerchantTransaction : receives
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Enums
 
-```sh
-turbo build --filter=docs
+| Enum | Values |
+|---|---|
+| `OnRampStatus` | Processing · Success · Failure |
+| `P2PStatus` | Processing · Completed · Failed |
+| `TxnStatus` | Pending · Completed · Failed · Refunded |
+| `ExpenseCategory` | Food · Transport · Bills · Shopping · Health · Entertainment · Other |
+| `AuthType` | Credentials · Google · Github |
+
+---
+
+## Getting started
+
+### Prerequisites
+- Node.js 18+
+- npm 9+
+- A [Neon](https://neon.tech) PostgreSQL database
+
+### Setup
+
+```bash
+# Clone the repo
+git clone https://github.com/YOUR_USERNAME/Zenith_Ledger.git
+cd Zenith_Ledger
+
+# Install all dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Fill in your DATABASE_URL and NEXTAUTH_SECRET
+
+# Generate Prisma client and push schema
+cd packages/db
+npx prisma generate
+npx prisma db push
+
+# Run everything
+cd ../..
+npm run dev
 ```
 
-Without global `turbo`:
+### Running individual apps
 
-```sh
-npx turbo build --filter=docs
-npm exec turbo build --filter=docs
-npm exec turbo build --filter=docs
+```bash
+# API only
+cd apps/api && npx tsx src/server.ts
+
+# User app only
+cd apps/user-app && npx next dev --port 3000
+
+# Merchant app only
+cd apps/merchant-app && npx next dev --port 3002
 ```
 
-### Develop
+---
 
-To develop all apps and packages, run the following command:
+## API endpoints
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | No | Create user account |
+| GET | `/api/wallet/balance` | Yes | Get wallet balance |
+| GET | `/api/wallet/transactions` | Yes | On-ramp history |
+| POST | `/api/wallet/onramp/initiate` | Yes | Start bank deposit |
+| POST | `/api/wallet/onramp/success` | No | Webhook — payment success |
+| POST | `/api/wallet/onramp/failure` | No | Webhook — payment failure |
 
-```sh
-cd my-turborepo
-turbo dev
-```
+_More endpoints added as modules are built._
 
-Without global `turbo`, use your package manager:
+---
 
-```sh
-cd my-turborepo
-npx turbo dev
-npm exec turbo dev
-npm exec turbo dev
-```
+## Roadmap
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+- [x] Monorepo setup (Turborepo)
+- [x] Database schema (Prisma + Neon)
+- [x] Express API foundation
+- [x] Auth module (register)
+- [x] Wallet module (balance, on-ramp)
+- [x] NextAuth (user-app login + register)
+- [ ] Transactions module (P2P transfers)
+- [ ] Merchant module + merchant-app
+- [ ] Bank webhook (mock bank simulation)
+- [ ] Currency module (live rates)
+- [ ] Expenses module + calculator
+- [ ] Docker Compose setup
+- [ ] GitHub Actions CI
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+---
 
-```sh
-turbo dev --filter=web
-```
+## Architecture decision — monolith first
 
-Without global `turbo`:
+All business logic lives in `apps/api`. The Next.js apps are UI-only and never touch the database directly. This makes the future migration to microservices mechanical — each module folder becomes its own service, and the internal EventBus swaps to Kafka. No business logic changes.
 
-```sh
-npx turbo dev --filter=web
-npm exec turbo dev --filter=web
-npm exec turbo dev --filter=web
-```
+---
 
-### Remote Caching
+## Money representation
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-npm exec turbo login
-npm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-npm exec turbo link
-npm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+All monetary amounts are stored as **integers in paise** (smallest currency unit, like cents). `50000` = ₹500.00. This avoids floating point precision issues entirely.
