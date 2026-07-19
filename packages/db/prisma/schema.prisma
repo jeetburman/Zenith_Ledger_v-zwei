@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users & Auth ─────────────────────────────────────────
+
+model User {
+  id       Int     @id @default(autoincrement())
+  email    String? @unique
+  name     String?
+  number   String  @unique
+  password String
+
+  // Relations
+  balance             Balance?
+  onRampTransactions  OnRampTransaction[]
+  sentTransfers       P2PTransfer[]         @relation("SentTransfers")
+  receivedTransfers   P2PTransfer[]         @relation("ReceivedTransfers")
+  merchantTransactions MerchantTransaction[]
+  expenses            Expense[]
+}
+
+model Merchant {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  name     String?
+  password String
+  authType AuthType @default(Credentials)
+
+  // Relations
+  transactions MerchantTransaction[]
+}
+
+// ─── Wallet & Balance ──────────────────────────────────────
+
+model Balance {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  // amounts stored in paise/cents (smallest unit)
+  // never store money as floats
+  amount Int  @default(0)
+  locked Int  @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── Transactions ──────────────────────────────────────────
+
+// On-ramp: bank → wallet (user adds money)
+model OnRampTransaction {
+  id        Int           @id @default(autoincrement())
+  status    OnRampStatus
+  token     String        @unique
+  provider  String
+  amount    Int
+  startTime DateTime
+  userId    Int
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// P2P: user → user transfer
+model P2PTransfer {
+  id         Int       @id @default(autoincrement())
+  amount     Int
+  timestamp  DateTime  @default(now())
+  fromUserId Int
+  toUserId   Int
+  status     P2PStatus @default(Processing)
+
+  fromUser User @relation("SentTransfers", fields: [fromUserId], references: [id])
+  toUser   User @relation("ReceivedTransfers", fields: [toUserId], references: [id])
+}
+
+// User → Merchant payment
+model MerchantTransaction {
+  id         Int       @id @default(autoincrement())
+  amount     Int
+  timestamp  DateTime  @default(now())
+  status     TxnStatus @default(Pending)
+  reference  String    @unique
+  userId     Int
+  merchantId Int
+
+  user     User     @relation(fields: [userId], references: [id])
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+}
+
+// ─── Expenses ──────────────────────────────────────────────
+
+model Expense {
+  id       Int             @id @default(autoincrement())
+  title    String
+  amount   Int
+  category ExpenseCategory
+  date     DateTime        @default(now())
+  note     String?
+  userId   Int
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ─── Currency ──────────────────────────────────────────────
+
+// Stores last fetched exchange rates as a historical log
+model CurrencyRate {
+  id           Int      @id @default(autoincrement())
+  fromCurrency String
+  toCurrency   String
+  rate         Float
+  fetchedAt    DateTime @default(now())
+}
+
+// ─── Enums ─────────────────────────────────────────────────
+
+enum AuthType {
+  Google
+  Github
+  Credentials
+}
+
+enum OnRampStatus {
+  Success
+  Failure
+  Processing
+}
+
+enum P2PStatus {
+  Processing
+  Completed
+  Failed
+}
+
+enum TxnStatus {
+  Pending
+  Completed
+  Failed
+  Refunded
+}
+
+enum ExpenseCategory {
+  Food
+  Transport
+  Bills
+  Shopping
+  Health
+  Entertainment
+  Other
+}
