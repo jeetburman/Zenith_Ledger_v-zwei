@@ -177,52 +177,6 @@ erDiagram
 
 ---
 
-## Getting started
-
-### Prerequisites
-- Node.js 18+
-- npm 9+
-- A [Neon](https://neon.tech) PostgreSQL database
-
-### Setup
-
-```bash
-# Clone the repo
-git clone https://github.com/YOUR_USERNAME/Zenith_Ledger.git
-cd Zenith_Ledger
-
-# Install all dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Fill in your DATABASE_URL and NEXTAUTH_SECRET
-
-# Generate Prisma client and push schema
-cd packages/db
-npx prisma generate
-npx prisma db push
-
-# Run everything
-cd ../..
-npm run dev
-```
-
-### Running individual apps
-
-```bash
-# API only
-cd apps/api && npx tsx src/server.ts
-
-# User app only
-cd apps/user-app && npx next dev --port 3000
-
-# Merchant app only
-cd apps/merchant-app && npx next dev --port 3002
-```
-
----
-
 ## API endpoints
 
 | Method | Endpoint | Auth | Description |
