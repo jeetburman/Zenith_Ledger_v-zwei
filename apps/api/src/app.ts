@@ -62,6 +62,7 @@ app.get('/api/protected-test', authMiddleware, (req, res) => {
 import authRouter from './modules/auth/auth.router';
 import walletRouter from './modules/wallet/wallet.router';
 import transactionRouter from './modules/transactions/transaction.router';
+import currencyRouter from './modules/currency/currency.router';
 
 // ─── Routes ────────────────────────────────────────────────
 // Each module's router gets mounted here as we build them.
@@ -69,7 +70,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/wallet', walletRouter);
 app.use('/api/transactions', transactionRouter);
 // app.use('/api/merchant', merchantRouter);
-// app.use('/api/currency', currencyRouter);
+app.use('/api/currency', currencyRouter);
 // app.use('/api/expenses', expenseRouter);
 
 // ─── 404 handler ───────────────────────────────────────────

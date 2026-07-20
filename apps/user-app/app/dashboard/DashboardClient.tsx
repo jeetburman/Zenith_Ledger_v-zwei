@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { apiClient } from '../../lib/apiClient';
+import CurrencyTicker from './CurrencyTicker';
 
 interface Balance {
   amount: number;
@@ -349,6 +350,8 @@ export default function DashboardClient({ session }: Props) {
             </div>
           )}
         </div>
+        {/* Live currency rates */}
+        <CurrencyTicker />
       </main>
     </div>
   );
