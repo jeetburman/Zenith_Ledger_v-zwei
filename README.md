@@ -203,8 +203,8 @@ _More endpoints added as modules are built._
 - [x] Transactions module (P2P transfers)
 - [ ] Merchant module + merchant-app
 - [x] Bank webhook (mock bank simulation)
-- [ ] Currency module (live rates)
-- [ ] Expenses module + calculator
+- [x] Currency module (live rates)
+- [x] Expenses module + calculator
 - [ ] Docker Compose setup
 - [ ] GitHub Actions CI
 

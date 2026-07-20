@@ -153,12 +153,19 @@ export default function DashboardClient({ session }: Props) {
           <span className="text-sm text-gray-500">
             {session.user?.name}
           </span>
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-4">
+              <a href="/expenses"
+              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              Expenses
+            </a>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
