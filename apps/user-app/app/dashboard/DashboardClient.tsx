@@ -28,6 +28,10 @@ interface Props {
 }
 
 export default function DashboardClient({ session }: Props) {
+  const [addAmount, setAddAmount] = useState('');
+  const [addingMoney, setAddingMoney] = useState(false);
+  const [addError, setAddError] = useState('');
+
   const [balance, setBalance] = useState<Balance | null>(null);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +66,33 @@ export default function DashboardClient({ session }: Props) {
       setError(err.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddMoney = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setAddError('');
+  setAddingMoney(true);
+
+  try {
+    // Convert rupees to paise
+    const amountInPaise = Math.round(parseFloat(addAmount) * 100);
+
+    const res = await apiClient.post<{
+      status: string;
+      data: { token: string; amount: number; provider: string };
+    }>('/api/wallet/onramp/initiate', {
+      amount: amountInPaise,
+      provider: 'Mock Bank',
+    });
+
+    // Redirect to mock bank payment page with the token
+    // The mock bank will call our webhook and redirect back
+      const bankUrl = `http://localhost:3003/pay?token=${res.data.token}&amount=${res.data.amount}&provider=Mock+Bank`;
+      window.location.href = bankUrl;
+    } catch (err: any) {
+        setAddError(err.message || 'Failed to initiate deposit');
+        setAddingMoney(false);
     }
   };
 
@@ -148,6 +179,45 @@ export default function DashboardClient({ session }: Props) {
               {formatAmount(balance.locked)} locked in pending transactions
             </p>
           )}
+        </div>
+
+        {/* Add money */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-5">
+            Add money to wallet
+          </h2>
+
+          <form onSubmit={handleAddMoney} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Amount (₹)
+              </label>
+              <input
+                type="number"
+                value={addAmount}
+                onChange={(e) => setAddAmount(e.target.value)}
+                placeholder="500"
+                min="1"
+                step="0.01"
+                required
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm"
+              />
+            </div>
+
+            {addError && (
+              <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">
+                {addError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={addingMoney}
+              className="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {addingMoney ? 'Redirecting to bank...' : 'Add money'}
+            </button>
+          </form>
         </div>
 
         {/* Send money */}

@@ -22,6 +22,7 @@ app.use(
     origin: [
       process.env.USER_APP_URL || 'http://localhost:3000',
       process.env.MERCHANT_APP_URL || 'http://localhost:3002',
+      process.env.BANK_WEBHOOK_URL || 'http://localhost:3003',
     ],
     credentials: true,
   })

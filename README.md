@@ -200,9 +200,9 @@ _More endpoints added as modules are built._
 - [x] Auth module (register)
 - [x] Wallet module (balance, on-ramp)
 - [x] NextAuth (user-app login + register)
-- [ ] Transactions module (P2P transfers)
+- [x] Transactions module (P2P transfers)
 - [ ] Merchant module + merchant-app
-- [ ] Bank webhook (mock bank simulation)
+- [x] Bank webhook (mock bank simulation)
 - [ ] Currency module (live rates)
 - [ ] Expenses module + calculator
 - [ ] Docker Compose setup
