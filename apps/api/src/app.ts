@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler } from './shared/middleware/errorHandler';
 import { notFound } from './shared/middleware/notFound';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use(
 // ─── Body parsing ──────────────────────────────────────────
 // Parse incoming JSON request bodies into req.body
 app.use(express.json());
+app.use(cookieParser());
 
 // ─── Request logging ───────────────────────────────────────
 // morgan('dev') logs: METHOD /path STATUS ms

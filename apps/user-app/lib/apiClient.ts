@@ -1,10 +1,5 @@
-// A thin wrapper around fetch that:
-// 1. Always sends cookies (credentials: 'include')
-//    so NextAuth session is sent with every request
-// 2. Always points to the Express API base URL
-// 3. Throws on non-ok responses with the server's message
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 async function request<T>(
   path: string,
@@ -12,6 +7,10 @@ async function request<T>(
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
+    // This is the critical line — tells the browser to send
+    // cookies cross-origin to the Express API.
+    // Without this, the NextAuth session cookie never
+    // reaches the API no matter what CORS says.
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
