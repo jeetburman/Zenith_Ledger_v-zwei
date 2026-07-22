@@ -3,9 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@repo/db';
 import bcrypt from 'bcryptjs';
 
-// Merchant auth — login with email + password.
-// Separate from user-app which uses phone + password.
-const handler = NextAuth({
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Email',
@@ -14,12 +12,11 @@ const handler = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
 
-      async authorize(credentials) {
+      async authorize(credentials: any) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
 
-        // Look up merchant by email
         const merchant = await prisma.merchant.findUnique({
           where: { email: credentials.email },
         });
@@ -46,19 +43,19 @@ const handler = NextAuth({
     }),
   ],
 
-  session: { strategy: 'jwt' },
+  session: { strategy: 'jwt' as const },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
 
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (token && session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id;
       }
       return session;
     },
@@ -69,6 +66,7 @@ const handler = NextAuth({
   },
 
   secret: process.env.NEXTAUTH_SECRET,
-});
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
