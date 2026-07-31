@@ -1,0 +1,53 @@
+name: CI
+
+# Runs on every push to any branch
+# and on every pull request targeting main
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  ci:
+    name: Type check & lint
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1 — Check out the code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2 — Set up Node.js
+      # We pin to Node 20 to match our Dockerfiles
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # Cache npm dependencies so subsequent runs
+          # don't re-download everything from scratch.
+          # GitHub caches based on package-lock.json hash.
+          cache: 'npm'
+
+      # Step 3 — Install all workspace dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4 — Generate Prisma client
+      # Required before type checking because our code
+      # imports types from @prisma/client which only
+      # exists after generation
+      - name: Generate Prisma client
+        run: cd packages/db && npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # Step 5 — Type check all apps in parallel via Turbo
+      # This runs tsc --noEmit in every workspace that
+      # has a check-types script
+      - name: TypeScript type check
+        run: npm run check-types
+
+      # Step 6 — Lint all apps
+      - name: Lint
+        run: npm run lint
