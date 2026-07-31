@@ -81,7 +81,11 @@ router.get(
   '/:id',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        throw new BadRequestError('Invalid transfer ID');
+      }
+      const id = parseInt(idParam);
       if (isNaN(id)) {
         throw new BadRequestError('Invalid transfer ID');
       }

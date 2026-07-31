@@ -1,3 +1,4 @@
+import { prisma } from '../../infrastructure/database';
 import { Router, Request, Response, NextFunction } from 'express';
 import { merchantService, registerMerchantSchema, payMerchantSchema } from './merchant.service';
 import { authMiddleware } from '../../shared/middleware/authMiddleware';
@@ -108,7 +109,6 @@ router.get(
   '/list',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { prisma } = await import('../../infrastructure/database');
       const merchants = await prisma.merchant.findMany({
         select: {
           id: true,
