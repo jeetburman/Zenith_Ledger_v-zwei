@@ -3,6 +3,9 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@repo/db';
 import bcrypt from 'bcryptjs';
 
+import { JWT } from 'next-auth/jwt';
+import { Session, User } from 'next-auth';
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -12,7 +15,7 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
 
-      async authorize(credentials: any) {
+      async authorize(credentials: Record<string, string> | undefined) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
@@ -46,14 +49,14 @@ export const authOptions = {
   session: { strategy: 'jwt' as const },
 
   callbacks: {
-    async jwt({ token, user }: any) {
+    async jwt({ token, user }: { token: JWT; user: User }) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
 
-    async session({ session, token }: any) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (token && session.user) {
         session.user.id = token.id;
       }

@@ -10,5 +10,5 @@ export default async function MerchantDashboardPage() {
     redirect('/login');
   }
 
-  return <MerchantDashboardClient session={session} />;
+  return <MerchantDashboardClient/>;
 }

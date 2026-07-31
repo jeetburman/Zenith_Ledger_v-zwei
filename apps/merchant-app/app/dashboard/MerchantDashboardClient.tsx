@@ -25,34 +25,45 @@ interface MerchantTransaction {
   };
 }
 
-export default function MerchantDashboardClient({ session }: { session: any }) {
+export default function MerchantDashboardClient() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [transactions, setTransactions] = useState<MerchantTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    let cancelled = false;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [dashRes, txRes] = await Promise.all([
-        apiClient.get<{ status: string; data: DashboardData }>(
-          '/api/merchant/dashboard'
-        ),
-        apiClient.get<{ status: string; data: MerchantTransaction[] }>(
-          '/api/merchant/transactions'
-        ),
-      ]);
-      setData(dashRes.data);
-      setTransactions(txRes.data);
-    } catch (err) {
-      console.error('Failed to load merchant dashboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [dashRes, txRes] = await Promise.all([
+          apiClient.get<{ status: string; data: DashboardData }>(
+            '/api/merchant/dashboard'
+          ),
+          apiClient.get<{ status: string; data: MerchantTransaction[] }>(
+            '/api/merchant/transactions'
+          ),
+        ]);
+        // Only update state if component is still mounted
+        if (!cancelled) {
+          setData(dashRes.data);
+          setTransactions(txRes.data);
+        }
+      } catch (err) {
+        console.error('Failed to load merchant dashboard:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    // Cleanup function — if component unmounts before
+    // fetch completes, don't call setState on unmounted component
+    return () => {
+      cancelled = true;
+    };
+  }, []); // empty array — runs once on mount
 
   const formatAmount = (paise: number) =>
     new Intl.NumberFormat('en-IN', {
