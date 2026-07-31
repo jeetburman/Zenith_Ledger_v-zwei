@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { authRepository } from './auth.repository';
-import { BadRequestError, ConflictError } from '../../shared/errors/AppError';
+import { ConflictError } from '../../shared/errors/AppError';
 import { z } from 'zod';
 
 // Validation schema for registration

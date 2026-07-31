@@ -5,7 +5,6 @@ import {
   BadRequestError,
   ConflictError,
   NotFoundError,
-  ForbiddenError,
 } from '../../shared/errors/AppError';
 
 export const registerMerchantSchema = z.object({
