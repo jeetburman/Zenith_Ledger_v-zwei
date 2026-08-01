@@ -201,12 +201,12 @@ _More endpoints added as modules are built._
 - [x] Wallet module (balance, on-ramp)
 - [x] NextAuth (user-app login + register)
 - [x] Transactions module (P2P transfers)
-- [ ] Merchant module + merchant-app
+- [x] Merchant module + merchant-app
 - [x] Bank webhook (mock bank simulation)
 - [x] Currency module (live rates)
 - [x] Expenses module + calculator
 - [ ] Docker Compose setup
-- [ ] GitHub Actions CI
+- [x] GitHub Actions CI
 
 ---
 
