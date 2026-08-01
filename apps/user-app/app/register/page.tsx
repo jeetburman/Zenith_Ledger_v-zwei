@@ -63,7 +63,7 @@ export default function RegisterPage() {
 
       // Registration successful — redirect to login
       router.push('/login?registered=true');
-    } catch (err) {
+    } catch (_err) {
       setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
@@ -174,10 +174,8 @@ export default function RegisterPage() {
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{' '}
           
-            href="/login"
-            className="text-gray-900 font-medium hover:underline"
-          <a>
-            Sign in
+          <a href="/login"
+            className="text-gray-900 font-medium hover:underline">Sign in
           </a>
         </p>
       </div>

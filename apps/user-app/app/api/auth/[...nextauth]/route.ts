@@ -3,6 +3,9 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@repo/db';
 import bcrypt from 'bcryptjs';
 
+import { JWT } from 'next-auth/jwt';
+import { Session, User } from 'next-auth';
+
 // Export authOptions separately so server components
 // can pass it to getServerSession().
 // Without this, getServerSession() can't find the
@@ -51,22 +54,22 @@ export const authOptions = {
   session: { strategy: 'jwt' as const },
 
   callbacks: {
-    async jwt({ token, user }: any) {
-      if (user) {
-        token.id = user.id;
-        token.number = user.number;
-      }
-      return token;
-    },
-
-    async session({ session, token }: any) {
-      if (token && session.user) {
-        session.user.id = token.id;
-        session.user.number = token.number;
-      }
-      return session;
-    },
+  async jwt({ token, user }: { token: JWT; user: User }) {
+    if (user) {
+      token.id = user.id;
+      token.number = (user as User & { number?: string }).number;
+    }
+    return token;
   },
+
+  async session({ session, token }: { session: Session; token: JWT }) {
+    if (token && session.user) {
+      session.user.id = token.id as string;
+      (session.user as Session['user'] & { number?: string }).number = token.number as string;
+    }
+    return session;
+  },
+},
 
   pages: {
     signIn: '/login',

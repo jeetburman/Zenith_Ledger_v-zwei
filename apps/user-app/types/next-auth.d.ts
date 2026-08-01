@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import 'next-auth';
 
 // Extend the built-in NextAuth types to include
 // our custom fields (id and number).

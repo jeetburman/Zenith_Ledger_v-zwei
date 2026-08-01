@@ -78,16 +78,14 @@ export default function ExpensesClient() {
   const [addError, setAddError] = useState('');
 
   useEffect(() => {
-    fetchData();
-  }, [activeCategory]);
+  let cancelled = false;
 
-  const fetchData = async () => {
+  const load = async () => {
     try {
       setLoading(true);
       const categoryParam = activeCategory
         ? `?category=${activeCategory}`
         : '';
-
       const [expensesRes, summaryRes] = await Promise.all([
         apiClient.get<{ status: string; data: Expense[] }>(
           `/api/expenses${categoryParam}`
@@ -96,15 +94,20 @@ export default function ExpensesClient() {
           '/api/expenses/summary'
         ),
       ]);
-
-      setExpenses(expensesRes.data);
-      setSummary(summaryRes.data);
+      if (!cancelled) {
+        setExpenses(expensesRes.data);
+        setSummary(summaryRes.data);
+      }
     } catch (err) {
       console.error('Failed to load expenses:', err);
     } finally {
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
   };
+
+  load();
+  return () => { cancelled = true; };
+}, [activeCategory]);
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,20 +127,40 @@ export default function ExpensesClient() {
 
       // Reset form and refresh
       setForm({ title: '', amount: '', category: 'Food', note: '' });
-      fetchData();
-    } catch (err: any) {
-      setAddError(err.message || 'Failed to add expense');
-    } finally {
-      setAdding(false);
-    }
-  };
+      const categoryParam = activeCategory ? `?category=${activeCategory}` : '';
+      const [expensesRes, summaryRes] = await Promise.all([
+        apiClient.get<{ status: string; data: Expense[] }>(
+          `/api/expenses${categoryParam}`
+        ),
+        apiClient.get<{ status: string; data: Summary }>(
+          '/api/expenses/summary'
+        ),
+      ]);
+      setExpenses(expensesRes.data);
+      setSummary(summaryRes.data);
+    } catch (err) {
+        setAddError(err instanceof Error ? err.message : 'Failed to add expense');
+    }finally {
+        setAdding(false);
+      }
+    };
 
   const handleDelete = async (id: number) => {
     try {
       await apiClient.delete(`/api/expenses/${id}`);
-      fetchData();
-    } catch (err: any) {
-      console.error('Failed to delete expense:', err.message);
+      const categoryParam = activeCategory ? `?category=${activeCategory}` : '';
+      const [expensesRes, summaryRes] = await Promise.all([
+        apiClient.get<{ status: string; data: Expense[] }>(
+          `/api/expenses${categoryParam}`
+        ),
+        apiClient.get<{ status: string; data: Summary }>(
+          '/api/expenses/summary'
+        ),
+      ]);
+      setExpenses(expensesRes.data);
+      setSummary(summaryRes.data);
+    } catch (err) {
+        console.error('Failed to delete expense:', err instanceof Error ? err.message : err);
     }
   };
 
@@ -153,10 +176,8 @@ export default function ExpensesClient() {
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           
-            href="/dashboard"
-            className="text-sm text-gray-500 hover:text-gray-900"
-          <a>
-            ← Dashboard
+          <a  href="/dashboard"
+            className="text-sm text-gray-500 hover:text-gray-900">← Dashboard
           </a>
           <h1 className="text-lg font-semibold text-gray-900">
             Expenses
@@ -380,8 +401,7 @@ export default function ExpensesClient() {
             </div>
           ) : expenses.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">
-              No expenses yet
-              {activeCategory && ` in ${activeCategory}`}
+              No expenses yet in {activeCategory}
             </p>
           ) : (
             <div className="space-y-1">

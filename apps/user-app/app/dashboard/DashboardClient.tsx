@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { apiClient } from '../../lib/apiClient';
 import CurrencyTicker from './CurrencyTicker';
+
+import { Session } from 'next-auth';
 
 interface Balance {
   amount: number;
@@ -25,7 +27,7 @@ interface Transfer {
 }
 
 interface Props {
-  session: any;
+  session: Session;
 }
 
 export default function DashboardClient({ session }: Props) {
@@ -57,32 +59,42 @@ export default function DashboardClient({ session }: Props) {
   // Without this, every render creates a new function instance
   // which looks like a changed dependency to useEffect,
   // causing an infinite re-render loop.
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [balanceRes, historyRes] = await Promise.all([
-        apiClient.get<{ status: string; data: Balance }>(
-          '/api/wallet/balance'
-        ),
-        apiClient.get<{ status: string; data: Transfer[] }>(
-          '/api/transactions/history'
-        ),
-      ]);
-      setBalance(balanceRes.data);
-      setTransfers(historyRes.data);
-      setError('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to load dashboard');
-    } finally {
-      setLoading(false);
-    }
-  }, []); // empty — no external dependencies
-
-  // Now it's safe to put fetchDashboardData in the dependency
-  // array because useCallback guarantees it never changes
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [balanceRes, historyRes] = await Promise.all([
+          apiClient.get<{ status: string; data: Balance }>(
+            '/api/wallet/balance'
+          ),
+          apiClient.get<{ status: string; data: Transfer[] }>(
+            '/api/transactions/history'
+          ),
+        ]);
+        if (!cancelled) {
+          setBalance(balanceRes.data);
+          setTransfers(historyRes.data);
+          setError('');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : 'Failed to load dashboard'
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleAddMoney = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,8 +114,9 @@ export default function DashboardClient({ session }: Props) {
 
       const bankUrl = `http://localhost:3003/pay?token=${res.data.token}&amount=${res.data.amount}&provider=Mock+Bank`;
       window.location.href = bankUrl;
-    } catch (err: any) {
-      setAddError(err.message || 'Failed to initiate deposit');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Transfer failed';
+      setSendError(message);
       setAddingMoney(false);
     }
   };
@@ -125,9 +138,15 @@ export default function DashboardClient({ session }: Props) {
       setSendSuccess(`₹${sendAmount} sent to ${sendTo}`);
       setSendTo('');
       setSendAmount('');
-      await fetchDashboardData();
-    } catch (err: any) {
-      setSendError(err.message || 'Transfer failed');
+      const [balanceRes, historyRes] = await Promise.all([
+        apiClient.get<{ status: string; data: Balance }>('/api/wallet/balance'),
+        apiClient.get<{ status: string; data: Transfer[] }>('/api/transactions/history'),
+      ]);
+      setBalance(balanceRes.data);
+      setTransfers(historyRes.data);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Transfer failed';
+        setSendError(message);
     } finally {
       setSending(false);
     }
@@ -155,9 +174,15 @@ export default function DashboardClient({ session }: Props) {
       );
       setMerchantId('');
       setMerchantAmount('');
-      await fetchDashboardData();
-    } catch (err: any) {
-      setMerchantError(err.message || 'Payment failed');
+      const [balanceRes, historyRes] = await Promise.all([
+        apiClient.get<{ status: string; data: Balance }>('/api/wallet/balance'),
+        apiClient.get<{ status: string; data: Transfer[] }>('/api/transactions/history'),
+      ]);
+      setBalance(balanceRes.data);
+      setTransfers(historyRes.data);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Transfer failed';
+        setSendError(message);
     } finally {
       setPayingMerchant(false);
     }
